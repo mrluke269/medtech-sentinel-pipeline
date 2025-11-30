@@ -22,4 +22,3 @@ del placeholder.txt
 ```powershell
 aws s3 ls s3://medtech-sentinel-raw-luke --recursive
 ```
-

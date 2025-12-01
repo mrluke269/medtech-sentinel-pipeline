@@ -26,7 +26,7 @@ def extract_fda_events(product_code, start_date, end_date):
 
         while  results_received <= limit:
             results_combined.extend(results)
-            response = requests.get(f'https://api.fda.gov/device/event.json?search=device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]&limit=1000&skip=1{results_received}')
+            response = requests.get(f'https://api.fda.gov/device/event.json?search=device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]&limit=1000&skip={results_received}')
             if response.status_code == 200:
                 data = response.json()
                 results = data.get('results', [])

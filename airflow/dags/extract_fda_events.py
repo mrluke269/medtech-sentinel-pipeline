@@ -7,14 +7,34 @@ def extract_fda_events(product_code, start_date, end_date):
     
     Args:
         product_code (str): The FDA product code.
-        start_date (str): The start date in 'YYYY-MM-DD'
-        end_date (str): The end date in 'YYYY-MM-DD'
+        start_date (str): The start date in 'YYYYMMDD'
+        end_date (str): The end date in 'YYYYMMDD'
     """
     # Implementation goes here
-    response = requests.get(f'https://api.fda.gov/device/event.json?search=product_code:{product_code}+AND+date_received:[{start_date}+TO+{end_date}]&limit=100')
+    results_combined = []
+    response = requests.get(f'https://api.fda.gov/device/event.json?search=device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]&limit=1000')
+
     if response.status_code == 200:
         data = response.json()
-        return data.get('results', [])
+
+        meta = data.get('meta', {}) # Get meta from data
+        meta_info = meta.get('results', {}) # Get results info from meta
+        limit = meta_info.get('limit') # get limit infro from meta
+        
+        results = data.get('results', []) # Get results from data
+        results_received = len(results) 
+
+        while  results_received <= limit:
+            results_combined.extend(results)
+            response = requests.get(f'https://api.fda.gov/device/event.json?search=device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]&limit=1000&skip=1{results_received}')
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get('results', [])
+                results_received += len(results)
+
+    return results_combined
+
+
     pass
 
 

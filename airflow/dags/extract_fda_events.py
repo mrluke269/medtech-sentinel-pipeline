@@ -1,3 +1,4 @@
+import time
 import requests
 import json
 
@@ -11,43 +12,54 @@ def extract_fda_events(product_code, start_date, end_date):
         end_date (str): The end date in 'YYYYMMDD'
     """
     # Implementation goes here
+    base_url = 'https://api.fda.gov/device/event.json'
+    skip = 0
+    limit = 1000
     results_combined = []
-    response = requests.get(f'https://api.fda.gov/device/event.json?search=device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]&limit=1000')
+    params = {
+        'search': f'device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]',
+        'limit': limit,
+        'skip': skip
+    }
 
-    if response.status_code == 200:
+    # Initial request
+    response = requests.get(base_url, params=params)
+
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status code {response.status_code}")
+    
+    data = response.json()
+
+    # Get meta info
+    meta = data.get('meta', {})
+    meta_results = meta.get('results', {})
+    total_records = meta_results.get('total', 0)
+
+    # Current batch of results
+    batch = data.get('results', [])
+    results_combined.extend(batch)
+    print(f"Extracted {len(batch)} records. Total so far: {len(results_combined)}")
+
+    # Update skip for pagination
+    skip += len(batch)
+
+    # ---- Pagination loop ----
+    while skip < total_records: # Continue until all records are fetched
+        params['skip'] = skip
+        response = requests.get(base_url, params=params)
+
+        if response.status_code != 200:
+            raise Exception(f"API request failed with status code {response.status_code}")
+
         data = response.json()
+        batch = data.get('results', [])
+        if not batch:
+            print("No more results returned by API, stopping early.")
+            break
+        results_combined.extend(batch) # Append new batch to combined results
+        print(f"Extracted {len(batch)} records. Total so far: {len(results_combined)}")
 
-        meta = data.get('meta', {}) # Get meta from data
-        meta_info = meta.get('results', {}) # Get results info from meta
-        limit = meta_info.get('limit') # get limit infro from meta
-        
-        results = data.get('results', []) # Get results from data
-        results_received = len(results) 
-
-        while  results_received <= limit:
-            results_combined.extend(results)
-            response = requests.get(f'https://api.fda.gov/device/event.json?search=device.device_report_product_code:"{product_code}"+AND+date_received:[{start_date}+TO+{end_date}]&limit=1000&skip={results_received}')
-            if response.status_code == 200:
-                data = response.json()
-                results = data.get('results', [])
-                results_received += len(results)
+        skip += len(batch)
+        time.sleep(0.1)  # be polite to the API
 
     return results_combined
-
-
-    pass
-
-
-
-"""
-Function 1: extract_fda_events(product_code, start_date, end_date)
-
-Builds API URL
-While loop: keep requesting until results_received < limit
-Append each page's events to a combined list
-Return the combined list
-
-Function 2: save_to_json(data, filepath)
-
-Takes the list from function 1
-Saves it to a JSON file"""

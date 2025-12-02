@@ -1,7 +1,9 @@
 import time
+import boto3
 import requests
 import json
 from pathlib import Path
+import boto3
 
 def extract_fda_events(product_code, start_date, end_date):
     """
@@ -105,3 +107,4 @@ if __name__ == "__main__":
     end_date = "20251101"
     data = extract_fda_events(product_code, start_date, end_date)
     save_events_to_json(data, product_code, start_date, end_date)
+

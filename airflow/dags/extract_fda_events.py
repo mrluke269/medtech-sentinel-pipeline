@@ -3,7 +3,7 @@ import boto3
 import requests
 import json
 from pathlib import Path
-import boto3
+
 
 def extract_fda_events(product_code, start_date, end_date):
     """
@@ -100,11 +100,38 @@ def save_events_to_json(events, product_code, start_date, end_date):
         json.dump(events, f, indent=2)
 
     print(f"Saved {len(events)} events to {output_path}")
+    return output_path
+
+# use Amazon S3 to store the data
+def upload_to_s3(file_name, bucket, product_code, start_date, end_date, object_name=None):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to 
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        if product_code == "DYE":
+            object_name = f'data/heart-valves/{product_code}_{start_date}_{end_date}.json'
+        else:
+            object_name = f'data/pulse-oximeters/{product_code}_{start_date}_{end_date}.json'
+    
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    with open(file_name, "rb") as f:
+        s3_client.upload_fileobj(f, bucket, object_name)
+    return True
 
 if __name__ == "__main__":
     product_code = "DYE"
     start_date = "20251001"
-    end_date = "20251101"
+    end_date = "20251021"
+    bucket = "medtech-sentinel-raw-luke"
     data = extract_fda_events(product_code, start_date, end_date)
     save_events_to_json(data, product_code, start_date, end_date)
-
+    file_name = save_events_to_json(data, product_code, start_date, end_date)
+    upload_to_s3(file_name, bucket, product_code, start_date, end_date)

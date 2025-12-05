@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: medtech_raw
+    database: RAW
+    schema: MEDTECH_SENTINEL
+    tables:
+      - name: RAW_ADVERSE_EVENTS
+        description: "Raw table containing adverse event reports."

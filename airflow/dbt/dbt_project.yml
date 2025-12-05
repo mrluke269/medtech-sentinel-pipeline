@@ -1,0 +1,28 @@
+name: 'medtech_sentinel'
+version: '1.0.0'
+config-version: 2
+
+# This must match the profile name in your profiles.yml
+profile: 'medtech_sentinel'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  medtech_sentinel:
+    # Configures all models in the project
+    +enabled: true
+    # Default materialization strategies
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

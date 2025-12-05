@@ -3,18 +3,29 @@ import boto3
 import requests
 import json
 from pathlib import Path
+from datetime import timedelta
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+from config import SNOWFLAKE_CONFIG
+import snowflake.connector
+from datetime import datetime
+from airflow.exceptions import AirflowSkipException
 
 
-def extract_fda_events(product_code, start_date, end_date):
-    """
-    Extract FDA events for a given product code and date range.
+
+# task 1: extract and upload events to Amazon S3
+def extract_and_save(product_code, **context):
     
-    Args:
-        product_code (str): The FDA product code.
-        start_date (str): The start date in 'YYYYMMDD'
-        end_date (str): The end date in 'YYYYMMDD'
-    """
-    # Implementation goes here
+    start_date = context['data_interval_start'].date()
+    end_date = context['data_interval_end'].date() - timedelta(days=1)
+    
+    start_date = start_date.strftime('%Y%m%d')
+    end_date = end_date.strftime('%Y%m%d')
+
+
+    print(f"Querying events from {start_date} to {end_date} for product_code={product_code}")
+
+    # Build the API request URL and parameters
     base_url = 'https://api.fda.gov/device/event.json'
     skip = 0
     limit = 1000
@@ -32,8 +43,12 @@ def extract_fda_events(product_code, start_date, end_date):
     response = requests.get(base_url, params=params)
 
     if response.status_code == 404:
-        print("No data found for the given query parameters.")
-        return results_combined
+        msg = (
+        f"No data found for product_code={product_code} "
+        f"between {start_date} and {end_date}. Skipping this run."
+        )
+        print(msg)
+        raise AirflowSkipException(msg)
 
     if response.status_code != 200:
         try:
@@ -41,7 +56,6 @@ def extract_fda_events(product_code, start_date, end_date):
             print("Error JSON from openFDA:", json.dumps(error_info, indent=2))
         except Exception:
             print("Error response (not JSON):", response.text)
-
         raise Exception(f"API request failed with status code {response.status_code}")
     
     data = response.json()
@@ -50,6 +64,9 @@ def extract_fda_events(product_code, start_date, end_date):
     meta = data.get('meta', {})
     meta_results = meta.get('results', {})
     total_records = meta_results.get('total', 0)
+    if total_records == 0:
+        print(f"No records found for {product_code} between {start_date} and {end_date}. Skipping upload and load.")
+        return False
 
     # Current batch of results
     batch = data.get('results', [])
@@ -71,7 +88,7 @@ def extract_fda_events(product_code, start_date, end_date):
         data = response.json()
         batch = data.get('results', [])
         if not batch:
-            print("No more results returned by API, stopping early.")
+            print("No more results returned by API, stopping...")
             break
         results_combined.extend(batch) # Append new batch to combined results
         print(f"Extracted {len(batch)} records. Total so far: {len(results_combined)}")
@@ -79,59 +96,113 @@ def extract_fda_events(product_code, start_date, end_date):
         skip += len(batch)
         time.sleep(0.1)  # be polite to the API
 
-    return results_combined
-
-def save_events_to_json(events, product_code, start_date, end_date):
-    """
-    Save extracted FDA events to a JSON file.
-    
-    Args:
-        events (list): List of FDA event records.
-        product_code (str): FDA product code used in the query.
-        start_date (str): Start date in 'YYYYMMDD'.
-        end_date (str): End date in 'YYYYMMDD'.
-    """
-    PROJECT_ROOT = Path(__file__).parent.parent.parent
-    OUTPUT_DIR = PROJECT_ROOT / 'data' / 'fda_events'
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / f'{product_code}_{start_date}_{end_date}.json'
-
-    with open(output_path, 'w') as f:
-        json.dump(events, f, indent=2)
-
-    print(f"Saved {len(events)} events to {output_path}")
-    return output_path
-
-# use Amazon S3 to store the data
-def upload_to_s3(file_name, bucket, product_code, start_date, end_date, object_name=None):
-    """Upload a file to an S3 bucket
-
-    :param file_name: File to upload
-    :param bucket: Bucket to upload to 
-    :param object_name: S3 object name. If not specified then file_name is used
-    :return: True if file was uploaded, else False
-    """
-
-    # If S3 object_name was not specified, use file_name
-    if object_name is None:
-        if product_code == "DYE":
-            object_name = f'data/heart-valves/{product_code}_{start_date}_{end_date}.json'
-        else:
-            object_name = f'data/pulse-oximeters/{product_code}_{start_date}_{end_date}.json'
-    
-
-    # Upload the file
+    # Upload to S3
+    # Initialize S3 client
     s3_client = boto3.client('s3')
-    with open(file_name, "rb") as f:
-        s3_client.upload_fileobj(f, bucket, object_name)
-    return True
+    
+    # Define S3 path
+    product_folders = {
+        'DYE': 'heart-valves',
+        'MUD': 'pulse-oximeters'
+    }
+    folder = product_folders[product_code]
+    S3_path = f"data/{folder}/{product_code}_{start_date}_{end_date}.json"
 
-if __name__ == "__main__":
-    product_code = "DYE"
-    start_date = "20251001"
-    end_date = "20251021"
-    bucket = "medtech-sentinel-raw-luke"
-    data = extract_fda_events(product_code, start_date, end_date)
-    save_events_to_json(data, product_code, start_date, end_date)
-    file_name = save_events_to_json(data, product_code, start_date, end_date)
-    upload_to_s3(file_name, bucket, product_code, start_date, end_date)
+    # Define S3 bucket name
+    bucket_name = 'medtech-sentinel-raw-luke'
+
+    # Upload JSON data to S3
+    s3_client.put_object(
+    Body=json.dumps(results_combined),
+    Bucket=bucket_name,
+    Key=S3_path
+)
+    
+    # Save S3 path to XCom
+    ti = context['ti']
+    file_path_in_stage = f"{folder}/{product_code}_{start_date}_{end_date}.json"
+    ti.xcom_push(key='file_path', value= file_path_in_stage)
+    print(f"Uploaded {len(results_combined)} "
+          f"records to s3://{bucket_name}/{S3_path} on {start_date} "
+          f"to {end_date} for {product_code}.")
+    return True
+    
+# Task 2: COPY INTO SNOWFLAKE FROM S3
+def load_to_snowflake(product_code,**context):
+    ti = context['ti']
+    file_path_in_stage = ti.xcom_pull(key='file_path', task_ids=f'extract_and_save_{product_code}')
+   
+    # Establish Snowflake connection
+    conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
+    # Create a cursor object
+    cs = conn.cursor()
+
+    try:
+        # Delete existing records for idempotency
+        delete_command = f"""
+        DELETE FROM RAW.MEDTECH_SENTINEL.RAW_ADVERSE_EVENTS
+        WHERE source_file = '{file_path_in_stage}';
+        """
+
+        cs.execute(delete_command)
+    except Exception as e:
+        print(f"Error during deletion for idempotency: {e}")
+        raise
+
+    try:
+    #  COPY INTO command
+        copy_command = f"""
+        COPY INTO RAW.MEDTECH_SENTINEL.RAW_ADVERSE_EVENTS(
+        raw_data,
+        loaded_at,
+        source_file
+        )
+        FROM (
+            SELECT
+                $1,
+                current_timestamp(),
+                '{file_path_in_stage}'
+            FROM @RAW.MEDTECH_SENTINEL.MEDTECH_RAW_STAGE/{file_path_in_stage}
+        )
+        FILE_FORMAT = (TYPE = 'JSON', STRIP_OUTER_ARRAY = TRUE);
+        """
+        cs.execute(copy_command)
+
+        # log number of rows loaded
+        rows_loaded = cs.rowcount
+        print(f"Events loaded into Snowflake: {rows_loaded}")
+
+    except Exception as e:
+        print(f"Error COPY INTO SNOWFLAKE: {e}")
+        raise
+
+    finally:
+        cs.close()
+        conn.close()
+
+# Define the DAG
+with DAG(
+    dag_id = 'extract_fda_events_v2',
+    start_date = datetime(2024, 1, 1),
+    schedule_interval = "@weekly",
+    catchup = True
+) as dag:
+    for product_code in ['DYE', 'MUD']:
+        extract_task = PythonOperator(
+        task_id=f'extract_and_save_{product_code}',
+        python_callable=extract_and_save,
+        retries=2,
+        retry_delay=timedelta(seconds=5),
+        retry_exponential_backoff=True,
+        op_kwargs={'product_code': product_code}
+    )
+
+        load_task = PythonOperator(
+        task_id=f'load_to_snowflake_{product_code}',
+        python_callable=load_to_snowflake,
+        retries=2,
+        retry_delay=timedelta(seconds=5),
+        retry_exponential_backoff=True,
+        op_kwargs={'product_code': product_code}
+    )
+        extract_task >> load_task

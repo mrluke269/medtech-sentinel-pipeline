@@ -149,6 +149,14 @@ def load_to_snowflake(product_code,**context):
     except Exception as e:
         print(f"Error during deletion for idempotency: {e}")
         raise
+    
+    try:
+        refresh_command = "ALTER STAGE RAW.MEDTECH_SENTINEL.MEDTECH_RAW_STAGE REFRESH;"
+        cs.execute(refresh_command)
+        print("Stage metadata refreshed successfully")
+    except Exception as e:
+        print(f"Error refreshing Snowflake stage: {e}")
+        
 
     try:
     #  COPY INTO command
@@ -167,6 +175,7 @@ def load_to_snowflake(product_code,**context):
         )
         FILE_FORMAT = (TYPE = 'JSON', STRIP_OUTER_ARRAY = TRUE);
         """
+        
         cs.execute(copy_command)
 
         # log number of rows loaded

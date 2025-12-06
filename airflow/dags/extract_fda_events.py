@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import timedelta
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.bash import BashOperator
 from config import SNOWFLAKE_CONFIG
 import snowflake.connector
 from datetime import datetime
@@ -185,8 +186,13 @@ with DAG(
     dag_id = 'extract_fda_events_v2',
     start_date = datetime(2024, 1, 1),
     schedule_interval = "@weekly",
-    catchup = True
+    catchup = False
 ) as dag:
+    transform_dbt_task = BashOperator(
+    task_id=f'transform_dbt',
+    bash_command= 'cd /opt/airflow/dbt && dbt run --prod',
+    )
+        
     for product_code in ['DYE', 'MUD']:
         extract_task = PythonOperator(
         task_id=f'extract_and_save_{product_code}',
@@ -205,4 +211,5 @@ with DAG(
         retry_exponential_backoff=True,
         op_kwargs={'product_code': product_code}
     )
-        extract_task >> load_task
+    
+        extract_task >> load_task >> transform_dbt_task

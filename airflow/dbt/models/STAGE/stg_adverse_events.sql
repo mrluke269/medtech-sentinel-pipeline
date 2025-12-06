@@ -11,16 +11,44 @@ parsed as (
     select
         -- 1. IDs and Dates (Cast to explicit types)
         raw_data:mdr_report_key::STRING as mdr_report_key,
-        raw_data:date_received::DATE as date_received,
+        TO_DATE(raw_data:date_received::STRING, 'YYYYMMDD') as date_received, -- Cast to DATE
         
         -- 2. Device Information
-        -- Renaming 'code' to 'product_code' for clarity downstream
-        raw_data:device[0]:brand_name::STRING as brand_name,
-        raw_data:device[0]:device_operator::STRING as device_operator,
-        raw_data:device[0]:device_report_product_code::STRING as product_code,
-        raw_data:device[0]:generic_name::STRING as generic_name,
-        raw_data:device[0]:openfda:device_class::STRING as device_class,
-        raw_data:device[0]:openfda:device_name::STRING as device_name,
+        -- Standardizing Brand Names
+       CASE
+            -----------------------------------------------------
+            -- Handle Missing or Empty Brand Names
+            WHEN raw_data:device[0]:brand_name::STRING IS NULL 
+                 OR TRIM(raw_data:device[0]:brand_name::STRING) = '' THEN 'Unknown'
+            -- EDWARDS LIFESCIENCES (Heart Valves)
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%PERIMOUNT%' THEN 'Carpentier-Edwards Perimount Bioprosthesis'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%INTUITY%' THEN 'Edwards Intuity Elite Valve System'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%MITRIS%' THEN 'Mitris Reslia Mitral Valve'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%PRIMA%' THEN 'Edwards Prima Plus Stentless Bioprosthesis'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%SAPIEN%' THEN 'Sapien Transcatheter Heart Valve'
+            -- MEDTRONIC (Heart Valves)
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%HANCOCK%' THEN 'Hancock II Bioprosthesis'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%MOSAIC%' THEN 'Mosaic Bioprosthesis'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%FREESTYLE%' THEN 'Freestyle Aortic Root Bioprosthesis'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%AVALUS%' THEN 'Avalus Bioprosthesis'
+            -- OXIMETERS (Edwards & Medtronic)
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%FORE%SIGHT%' THEN 'Fore-Sight Tissue Oximeter'
+            WHEN raw_data:device[0]:brand_name::STRING ILIKE '%INVOS%' THEN 'INVOS Cerebral/Somatic Oximeter'
+            -- Cleanup (Explicit "Junk" Strings from Source)
+            WHEN raw_data:device[0]:brand_name::STRING IN (
+                'NI', 'SEE H10', 'UNKNOWN', 
+                'UNKNOWN MITRAL VALVE', 'UNKNOWN PROSTHESIS HEART VALVE',
+                'UNSPECIFIED INVOS PRODUCT'
+            ) THEN 'Unknown'
+            -- Fallback
+            ELSE INITCAP(TRIM(raw_data:device[0]:brand_name::STRING))
+        END as brand_name,
+
+        coalesce(raw_data:device[0]:device_operator::STRING, 'Unknown') as device_operator,
+        coalesce(raw_data:device[0]:device_report_product_code::STRING, 'Unknown') as product_code,
+        coalesce(raw_data:device[0]:generic_name::STRING, 'Unknown') as generic_name,
+        coalesce(raw_data:device[0]:openfda:device_class::STRING, 'Unknown') as device_class,
+        coalesce(raw_data:device[0]:openfda:device_name::STRING, 'Unknown') as device_name,
 
         -- 3. Standardizing Manufacturer Names
         case 

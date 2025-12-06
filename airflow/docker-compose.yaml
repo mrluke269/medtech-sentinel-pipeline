@@ -1,7 +1,8 @@
 version: '3.8'
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:2.10.4
+  #image: apache/airflow:2.10.4
+  build: .
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -14,6 +15,7 @@ x-airflow-common:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ./dbt:/opt/airflow/dbt
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     postgres:

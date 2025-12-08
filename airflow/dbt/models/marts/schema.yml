@@ -1,0 +1,190 @@
+version: 2
+
+models:
+  - name: dim_dates
+    description: "Date dimension table with one row per calendar date from 2020-01-01 up to the current date."
+    columns:
+      - name: date_key
+        description: "Surrogate key for the date in YYYYMMDD numeric format."
+        tests:
+          - not_null
+          - unique
+
+      - name: full_date
+        description: "The actual calendar date."
+        tests:
+          - not_null
+
+      - name: year
+        description: "Calendar year extracted from full_date (e.g. 2025)."
+        tests:
+          - not_null
+
+      - name: month
+        description: "Numeric month of year extracted from full_date (1–12)."
+        tests:
+          - not_null
+
+      - name: day
+        description: "Day of month extracted from full_date (1–31)."
+        tests:
+          - not_null
+
+      - name: quarter
+        description: "Numeric quarter of year extracted from full_date (1–4)."
+        tests:
+          - not_null
+
+      - name: day_of_week
+        description: "Numeric day of week for full_date (database-dependent numbering)."
+        tests:
+          - not_null
+
+      - name: week_of_year
+        description: "ISO-like week number of the year for full_date."
+        tests:
+          - not_null
+
+      - name: day_name
+        description: "Full day name for full_date (e.g. 'Monday')."
+        tests:
+          - not_null
+
+      - name: month_name
+        description: "Full month name for full_date (e.g. 'January')."
+        tests:
+          - not_null
+
+      - name: quarter_name
+        description: "Quarter label derived from month (Q1, Q2, Q3, Q4)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Q1', 'Q2', 'Q3', 'Q4']
+
+  - name: dim_devices
+    description: "A device dimension table containing distinct manufacturers, brands, and product codes derived from adverse event data."
+
+    columns:
+      - name: device_key
+        description: "Surrogate key generated as MD5 hash of manufacturer_name + brand_name + product_code."
+        tests:
+          - not_null
+          - unique
+
+      - name: manufacturer_name
+        description: "Name of the manufacturer associated with the device."
+        tests:
+          - not_null
+
+      - name: brand_name
+        description: "Brand name of the device."
+        tests:
+          - not_null
+
+      - name: product_code
+        description: "FDA product code representing the device type."
+        tests:
+          - not_null
+
+      - name: device_name
+        description: "Descriptive commercial device name. Uses MAX() to surface a single value per grain."
+        tests:
+          - not_null
+
+      - name: generic_name
+        description: "General device type or category assigned to the product."
+        tests:
+          - not_null
+
+      - name: device_class
+        description: "FDA device classification level (I, II, III, etc.)"
+        tests:
+          - not_null
+
+  - name: dim_event_types
+    description: "A dimension table for adverse event types derived from the adverse events data."
+
+    columns:
+      - name: event_type_key
+        description: "Surrogate key generated as MD5 hash of event_type."
+        tests:
+          - not_null
+          - unique
+
+      - name: event_type
+        description: "Type of adverse event reported (e.g., 'Malfunction', 'Injury', 'Death')."
+        tests:
+          - not_null
+
+      - name: severity_rank
+        description: "Numeric severity ranking assigned by logic — 1=Death, 2=Injury, 3=Malfunction, 4=Other/Unknown."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+  
+  - name: dim_manufacturers
+    description: "Dimension table containing unique FDA device manufacturers."
+    columns:
+      - name: manufacturer_key
+        description: "Surrogate key generated using MD5 hash of manufacturer_name."
+        tests:
+          - not_null
+          - unique
+      - name: manufacturer_name
+        description: "Normalized manufacturer name extracted from adverse event records."
+        tests:
+          - not_null
+          - unique
+  
+  - name: fct_adverse_events
+    description: "Fact table of FDA medical device adverse events at the mdr_report_key grain, joined to date, device, manufacturer, and event type dimensions."
+    columns:
+      - name: event_key
+        description: "Primary key for the fact table; sourced from mdr_report_key in stg_adverse_events."
+        tests:
+          - not_null
+          - unique
+
+      - name: date_key
+        description: "Foreign key to dim_dates.date_key representing the event's received date."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+
+      - name: device_key
+        description: "Foreign key to dim_devices.device_key representing the specific device (manufacturer + brand + product_code)."
+        tests:
+          - relationships:
+              to: ref('dim_devices')
+              field: device_key
+
+      - name: manufacturer_key
+        description: "Foreign key to dim_manufacturers.manufacturer_key representing the manufacturer."
+        tests:
+          - relationships:
+              to: ref('dim_manufacturers')
+              field: manufacturer_key
+
+      - name: event_type_key
+        description: "Foreign key to dim_event_types.event_type_key representing the type of adverse event."
+        tests:
+          - relationships:
+              to: ref('dim_event_types')
+              field: event_type_key
+
+      - name: patient_problems
+        description: "Array or list of patient problems associated with the event, as reported in the source JSON."
+        tests: []
+
+      - name: product_problems
+        description: "Array or list of product problems associated with the event, as reported in the source JSON."
+        tests: []
+
+      - name: loaded_at
+        description: "Timestamp when the event record was ingested into the warehouse; used for incremental loading."
+        tests:
+          - not_null

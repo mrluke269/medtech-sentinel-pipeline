@@ -41,10 +41,7 @@ final as (
         -- 3. The Descriptive Context
         device_name,
         generic_name,
-        device_class,
-        
-        -- 4. Metadata
-        current_timestamp() as dbt_valid_from
+        device_class
 
     from distinct_device
 )

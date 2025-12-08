@@ -177,6 +177,7 @@ def load_to_snowflake(product_code,**context):
         """
         
         cs.execute(copy_command)
+        conn.commit()
 
         # log number of rows loaded
         rows_loaded = cs.rowcount
@@ -199,7 +200,12 @@ with DAG(
 ) as dag:
     transform_dbt_task = BashOperator(
     task_id=f'transform_dbt',
-    bash_command= 'cd /opt/airflow/dbt && dbt run --prod',
+    bash_command= 'cd /opt/airflow/dbt && dbt run --target prod --profiles-dir .'
+    )
+
+    test_dbt_task = BashOperator(
+        task_id='dbt_test',
+        bash_command = 'cd /opt/airflow/dbt && dbt test --target prod --profiles-dir .'
     )
         
     for product_code in ['DYE', 'MUD']:
@@ -221,4 +227,4 @@ with DAG(
         op_kwargs={'product_code': product_code}
     )
     
-        extract_task >> load_task >> transform_dbt_task
+        extract_task >> load_task >> transform_dbt_task >> test_dbt_task

@@ -25,7 +25,7 @@ This pipeline automates post-market surveillance for medical devices by monitori
 > **Note**: The pipeline processes real FDA MAUDE database reports. Current dataset includes 6,557 adverse events spanning heart valves (product code DYE) and pulse oximeters (product code MUD).
 
 ---
-## [<img src="https://img.icons8.com/?size=512&id=19318&format=png" width="15">] Full Pipeline Walkthrough (6 minutes)
+## [<img src="https://img.icons8.com/?size=512&id=19318&format=png" width="15">] Full Pipeline Walkthrough
 
 [<img src="https://img.icons8.com/?size=512&id=19318&format=png" width="120">](https://youtu.be/N9KEmc6ZuhI)
 

@@ -20,23 +20,15 @@ An automated cloud pipeline that extracts FDA adverse event reports weekly, tran
 
 ## Business Objective
 
-This pipeline automates post-market surveillance for medical devices by monitoring FDA adverse event reports for heart valves and pulse oximeters. Quality engineers and regulatory teams use the resulting dashboards to identify safety trends, compare manufacturer performance, and detect emerging risk patterns. Key technical capabilities:
-
-- **Cloud deployment** — runs entirely on AWS (EC2, S3) independent of local machines
-- **Containerized orchestration** — Airflow runs in Docker for consistent, portable execution
-- **Live API integration** — extracts from openFDA API with pagination and rate limit handling
-- **Staging layer architecture** — S3 provides durable storage, audit trails, and reprocessing capability
-- **External stage loading** — Snowflake ingests directly from S3 via IAM trust relationships
-- **Incremental processing** — extracts only new weekly data, not full reloads
-- **Idempotent loads** — safe to rerun or backfill without creating duplicates
-- **Dimensional modeling** — star schema with fact and dimension tables optimized for analytics
-- **Layered transformations** — staging → intermediate → marts separation in dbt
-- **Data quality testing** — automated dbt tests validate transformations before dashboard refresh
-- **Automated orchestration** — Airflow schedules weekly runs with error handling and retries
+This pipeline automates post-market surveillance for medical devices by monitoring FDA adverse event reports for heart valves and pulse oximeters. Quality engineers and regulatory teams use the resulting dashboards to identify safety trends, compare manufacturer performance, and detect emerging risk patterns. 
 
 > **Note**: The pipeline processes real FDA MAUDE database reports. Current dataset includes 6,557 adverse events spanning heart valves (product code DYE) and pulse oximeters (product code MUD).
 
 ---
+## [<img src="https://img.icons8.com/?size=512&id=19318&format=png" width="15">] Full Pipeline Walkthrough (6 minutes)
+
+[<img src="https://img.icons8.com/?size=512&id=19318&format=png" width="120">](https://youtu.be/N9KEmc6ZuhI)
+
 
 ## Architecture
 
@@ -57,7 +49,6 @@ This pipeline automates post-market surveillance for medical devices by monitori
 - Airflow orchestrates the entire workflow — triggering extraction, S3 upload, Snowflake loading, dbt transformations, and testing in sequence
 - Scheduled weekly with retry logic and error handling
 
----
 
 ## Tech Stack
 
@@ -68,16 +59,12 @@ This pipeline automates post-market surveillance for medical devices by monitori
 
 <img src="./images/key_features3.png" alt="key_features3" width="766">
 
----
 
 ## Data Model
 
 <img src="./images/model_2.png" alt="data_model" width="766">
 
 dbt build data models flowing from the raw FDA source through staging model (cleaning and standardization), into dimensional models including device, manufacturer, and date dimensions, and finally into the fact table (`fct_adverse_events`)  and analytical marts. This layered approach separates data cleaning from business logic and supports efficient queries for safety trend analysis, manufacturer comparison, and event type distribution.
-
----
-
 
 ## Project Structure
 
@@ -99,21 +86,51 @@ medtech-sentinel/
 └── README.md
 ```
 
----
+
 
 ## Dashboard
-- The Power BI dashboard provides a 7-page analytical interface for post-market surveillance of medical device adverse events.
+The Power BI dashboard provides a 7-page analytical interface for post-market surveillance of medical device adverse events.
 
-- The Overview page presents high-level KPIs (6,557 total events across 15 manufacturers and 46 devices), event trends over time, and severity breakdown by event type. The analysis then splits > into two parallel tracks: Death Events (54 total) and Injury Events (5,953 total).
+<img src="./dashboard/01Overview.png"  width="766">
 
-- Each track includes three focused views: an overview showing distribution by brand and severity profile, a Products Analysis examining what device problems were reported (e.g., device stenosis, calcification, regurgitation) and categorizing them into primary failure modes (Hemodynamic/Functional, Procedural/Anatomy, Critical Structural Failure), and a Patient Analysis exploring clinical outcomes and patient symptoms (e.g., heart failure, dyspnea, cardiogenic shock).
+The Overview page presents high-level KPIs (6,557 total events across 15 manufacturers and 46 devices), event trends over time, and severity breakdown by event type. The analysis then splits > into two parallel tracks: Death Events (54 total) and Injury Events (5,953 total).
 
-- This separation of product problems versus patient problems provides complementary perspectives — quality engineers can identify what failed on the device while clinical teams understand the patient impact.
+Each track includes three focused views: an overview showing distribution by brand and severity profile, a Products Analysis examining what device problems were reported (e.g., device stenosis, calcification, regurgitation) and categorizing them into primary failure modes (Hemodynamic/Functional, Procedural/Anatomy, Critical Structural Failure), and a Patient Analysis exploring clinical outcomes and patient symptoms (e.g., heart failure, dyspnea, cardiogenic shock).
+<img src="./dashboard/03Death_Events_Products_Analysis.png"  width="766" height="408">
 
-- Interactive filters for device class and generic name enable drill-down analysis across heart valves (Class III, high risk) and pulse oximeters (Class II, moderate risk).
+<img src="./dashboard/07Injury_Events_Patient_Analysis.png"  width="766">
+
+This separation of product problems versus patient problems provides complementary perspectives — quality engineers can identify what failed on the device while clinical teams understand the patient impact.
+
+Interactive filters for device class and generic name enable drill-down analysis across heart valves (Class III, high risk) and pulse oximeters (Class II, moderate risk).
+
+
+
+## Data Source
+
+This pipeline extracts data from the [openFDA API](https://open.fda.gov/apis/device/event/), which provides public access to the FDA's Manufacturer and User Facility Device Experience (MAUDE) database. MAUDE contains adverse event reports submitted by manufacturers, healthcare facilities, and patients involving medical devices.
+
+**Devices Monitored:**
+| Product Code | Device Type | FDA Class |
+|--------------|-------------|-----------|
+| DYE | Replacement Heart Valve | Class III (High Risk) |
+| MUD | Pulse Oximeter | Class II (Moderate Risk) |
+
+**Dataset Summary:**
+- **Date Range:** January 2024 – October 2025
+- **Total Events:** 6,557 adverse event reports
+- **Event Types:** 54 deaths, 5,953 injuries, 550 malfunctions
+- **Manufacturers:** 15 unique companies
+- **Devices:** 46 unique device brands
 
 ---
 
-<img src="./dashboard/01Overview.png"  width="766">
-<img src="./dashboard/03Death_Events_Products_Analysis.png"  width="766" height="408">
-<img src="./dashboard/07Injury_Events_Patient_Analysis.png"  width="766">
+<div align="center">
+
+## 📧 Contact & Links
+
+**GitHub:** [github.com/mrluke269]  
+**Email:** [luke.trmai@gmail.com]
+### **Luke M**
+
+</div>

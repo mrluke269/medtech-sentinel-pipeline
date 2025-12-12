@@ -63,21 +63,6 @@ This pipeline automates post-market surveillance for medical devices by monitori
 
 <img src="./images/tech_stack.png" alt="Architecture Diagram" width="766">
 
-| #  | Category                        | Tech                                                                                                  | Version    | Purpose                                       |
-|----|----------------------------------|-----------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------|
-| 1  | **Cloud Infrastructure**       | [![Amazon EC2](https://img.shields.io/badge/Amazon%20EC2-FF9900?style=flat&logo=amazonec2&logoColor=white)](https://aws.amazon.com/ec2/) | —          | Compute instance for pipeline execution       |
-| 2  |                                  | [![Amazon S3](https://img.shields.io/badge/Amazon%20S3-569A31?style=flat&logo=amazons3&logoColor=white)](https://aws.amazon.com/s3/)       | —          | Raw + staging object storage                  |
-| 3  |                                  | [![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=flat&logo=ubuntu&logoColor=white)](https://ubuntu.com/)                       | 24.04 LTS  | Operating system environment                  |
-| 4  | **Infrastructure & Core**      | [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)                   | Latest     | Containerized, reproducible environment       |
-| 5  |                                  | [![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)                   | 3.11       | API extraction & workflow logic               |
-| 6  |                                  | [![SQL](https://img.shields.io/badge/SQL-4479A1?style=flat&logo=postgresql&logoColor=white)](https://en.wikipedia.org/wiki/SQL)           | n/a        | Data modeling, querying, and transformations  |
-| 7  | **Orchestration & Security**   | [![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-017CEE?style=flat&logo=Apache%20Airflow&logoColor=white)](https://airflow.apache.org/) | 2.10.4     | Workflow scheduling & automation             |
-| 8  |                                  | 🔐 **IAM Trust Policies**                                                                                           | —          | Secure S3 ↔ Snowflake authentication          |
-| 9  | **Data Platform**              | [![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=flat&logo=snowflake&logoColor=white)](https://www.snowflake.com/)       | —          | Cloud data warehouse & compute                |
-| 10 |                                  | [![dbt](https://img.shields.io/badge/dbt-FF694B?style=flat&logo=dbt&logoColor=white)](https://www.getdbt.com/)                           | 1.10.15    | SQL modeling, lineage, tests                 |
-| 11 | **Presentation Layer**         | [![Power BI](https://img.shields.io/badge/Power%20BI-F2C811?style=flat&logo=powerbi&logoColor=black)](https://powerbi.microsoft.com/)    | Latest     | Interactive dashboards & insights             |
-| 12 |                                  | [![DAX](https://img.shields.io/badge/DAX-F2C811?style=flat&logo=powerbi&logoColor=black)](https://learn.microsoft.com/en-us/dax/)        | n/a        | Measures & semantic modeling                 |
-| 13 | **Version Control**            | [![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/)                       | —          | Source control, documentation, CI/CD          |
 
 ## Pipeline Key Features
 
@@ -117,8 +102,18 @@ medtech-sentinel/
 ---
 
 ## Dashboard
+- The Power BI dashboard provides a 7-page analytical interface for post-market surveillance of medical device adverse events.
+
+- The Overview page presents high-level KPIs (6,557 total events across 15 manufacturers and 46 devices), event trends over time, and severity breakdown by event type. The analysis then splits > into two parallel tracks: Death Events (54 total) and Injury Events (5,953 total).
+
+- Each track includes three focused views: an overview showing distribution by brand and severity profile, a Products Analysis examining what device problems were reported (e.g., device stenosis, calcification, regurgitation) and categorizing them into primary failure modes (Hemodynamic/Functional, Procedural/Anatomy, Critical Structural Failure), and a Patient Analysis exploring clinical outcomes and patient symptoms (e.g., heart failure, dyspnea, cardiogenic shock).
+
+- This separation of product problems versus patient problems provides complementary perspectives — quality engineers can identify what failed on the device while clinical teams understand the patient impact.
+
+- Interactive filters for device class and generic name enable drill-down analysis across heart valves (Class III, high risk) and pulse oximeters (Class II, moderate risk).
+
+---
 
 <img src="./dashboard/01Overview.png"  width="766">
-<img src="./dashboard/02Death_Events_Analysis.png"  width="766">
-<img src="./dashboard/03Death_Events_Products_Analysis.png"  width="766">
-<img src="./dashboard/05Injury_Events_Analysis.png"  width="766">
+<img src="./dashboard/03Death_Events_Products_Analysis.png"  width="766" height="408">
+<img src="./dashboard/07Injury_Events_Patient_Analysis.png"  width="766">

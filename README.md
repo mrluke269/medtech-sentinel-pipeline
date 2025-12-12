@@ -93,16 +93,15 @@ The Power BI dashboard provides a 7-page analytical interface for post-market su
 
 <img src="./dashboard/01Overview.png"  width="766">
 
-The Overview page presents high-level KPIs (6,557 total events across 15 manufacturers and 46 devices), event trends over time, and severity breakdown by event type. The analysis then splits > into two parallel tracks: Death Events (54 total) and Injury Events (5,953 total).
+- The Overview page presents high-level KPIs (6,557 total events across 15 manufacturers and 46 devices), event trends over time, and severity breakdown by event type. The analysis then splits > into two parallel tracks: Death Events (54 total) and Injury Events (5,953 total).
 
 Each track includes three focused views: an overview showing distribution by brand and severity profile, a Products Analysis examining what device problems were reported (e.g., device stenosis, calcification, regurgitation) and categorizing them into primary failure modes (Hemodynamic/Functional, Procedural/Anatomy, Critical Structural Failure), and a Patient Analysis exploring clinical outcomes and patient symptoms (e.g., heart failure, dyspnea, cardiogenic shock).
-<img src="./dashboard/03Death_Events_Products_Analysis.png"  width="766" height="408">
 
+<img src="./dashboard/03Death_Events_Products_Analysis.png"  width="766" height="417">
 <img src="./dashboard/07Injury_Events_Patient_Analysis.png"  width="766">
 
-This separation of product problems versus patient problems provides complementary perspectives — quality engineers can identify what failed on the device while clinical teams understand the patient impact.
-
-Interactive filters for device class and generic name enable drill-down analysis across heart valves (Class III, high risk) and pulse oximeters (Class II, moderate risk).
+- This separation of product problems versus patient problems provides complementary perspectives — quality engineers can identify what failed on the device while clinical teams understand the patient impact.
+- Interactive filters for device class and generic name enable drill-down analysis across heart valves (Class III, high risk) and pulse oximeters (Class II, moderate risk).
 
 
 

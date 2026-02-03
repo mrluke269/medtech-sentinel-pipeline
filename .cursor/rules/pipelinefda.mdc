@@ -1,0 +1,68 @@
+---
+name: pipelinefda
+description: This is a new rule
+---
+
+# Overview
+
+# FDA Medical Device Adverse Events Pipeline
+
+## Project Overview
+Airflow DAG that extracts adverse event data from FDA's public API for medical devices (heart valves and pulse oximeters), stores raw data in S3, loads into Snowflake, and transforms with dbt.
+
+## Tech Stack
+- **Orchestration:** Apache Airflow (weekly scheduled DAG)
+- **Data Source:** FDA openFDA API (device/event.json endpoint)
+- **Storage:** AWS S3 bucket: medtech-sentinel-raw-luke
+- **Warehouse:** Snowflake (RAW.MEDTECH_SENTINEL schema)
+- **Transformation:** dbt (data modeling and testing)
+- **Languages:** Python 3.x, SQL
+
+## Product Codes & Organization
+- **DYE:** Heart valves → stored in S3 path: data/heart-valves/
+- **MUD:** Pulse oximeters → stored in S3 path: data/pulse-oximeters/
+
+## Pipeline Flow
+1. Extract: Query FDA API with pagination for date range
+2. Upload: Store raw JSON to S3
+3. Load: Snowflake COPY INTO from S3 stage
+4. Transform: dbt models create analytics-ready tables
+5. Test: dbt tests validate data quality
+
+## Key Concepts I'm Learning
+**Airflow Patterns:**
+- DAG structure and task dependencies
+- Context dictionary (data_interval_start, data_interval_end)
+- XCom for inter-task communication
+- Task retries and exponential backoff
+- AirflowSkipException for graceful handling
+
+**Data Engineering Patterns:**
+- Idempotency: DELETE before INSERT pattern
+- API pagination with rate limiting
+- Error handling: 404 (no data) vs 500 (actual error)
+- S3 as staging layer before warehouse
+- Snowflake external stages and COPY commands
+
+**Production Concerns:**
+- Handling empty result sets gracefully
+- API politeness (time.sleep between requests)
+- File path management via XCom
+- Stage metadata refresh before COPY
+
+## Current State
+Working production pipeline running weekly. Built this to learn data engineering but have knowledge debt on WHY certain patterns exist and what edge cases they handle.
+
+## My Learning Goals
+Use Cursor to understand production patterns deeply:
+- Explain patterns using actual code from THIS pipeline
+- Show me what breaks without each pattern
+- Point out edge cases I might have missed
+- Help me articulate these patterns in interviews
+- Connect to broader data engineering best practices
+
+## Code Style Preferences
+- Add docstrings explaining function purpose
+- Type hints for function parameters
+- Comments should explain WHY, not WHAT
+- For refactoring: show me current limitations first, then improvements
